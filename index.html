@@ -1,0 +1,274 @@
+<!DOCTYPE html>
+<html lang="uz">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Online Kurs</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: 'Segoe UI'; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); min-height: 100vh; padding: 20px; }
+        .container { max-width: 1200px; margin: 0 auto; }
+        header { text-align: center; color: white; margin-bottom: 40px; }
+        header h1 { font-size: 3em; margin-bottom: 10px; }
+        .user-panel { background: white; border-radius: 15px; padding: 20px; margin-bottom: 30px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 10px 30px rgba(0,0,0,0.2); }
+        .balance-display { font-size: 1.5em; color: #667eea; font-weight: bold; }
+        .auth-buttons button { padding: 10px 25px; border: none; border-radius: 25px; cursor: pointer; margin-left: 10px; font-size: 1em; }
+        .btn-login { background: #667eea; color: white; }
+        .btn-logout { background: #ff6b6b; color: white; }
+        .btn-add-money { background: #4caf50; color: white; }
+        .btn-teacher-action { background: #2196f3; color: white; display: none; }
+        .courses { display: grid; grid-template-columns: repeat(auto-fit, minmax(300px, 1fr)); gap: 20px; margin-bottom: 30px; }
+        .course-card { background: white; border-radius: 15px; overflow: hidden; box-shadow: 0 10px 30px rgba(0,0,0,0.2); transition: transform 0.3s; }
+        .course-card:hover { transform: translateY(-5px); }
+        .course-header { height: 150px; background: linear-gradient(135deg, #667eea 0%, #764ba2 100%); color: white; padding: 20px; }
+        .course-header h3 { font-size: 1.5em; margin-bottom: 5px; }
+        .course-price { font-size: 1.3em; font-weight: bold; }
+        .course-body { padding: 20px; }
+        .course-body p { color: #666; margin-bottom: 15px; }
+        .course-info { display: flex; justify-content: space-between; margin-bottom: 15px; padding: 10px; background: #f5f5f5; border-radius: 8px; }
+        .info-item { text-align: center; }
+        .info-item .label { font-size: 0.85em; color: #999; }
+        .info-item .value { font-size: 1.1em; font-weight: bold; color: #333; }
+        .btn-book { width: 100%; padding: 12px; background: #667eea; color: white; border: none; border-radius: 25px; cursor: pointer; }
+        .modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.7); z-index: 1000; }
+        .modal.active { display: flex; }
+        .modal-content { background: white; border-radius: 20px; padding: 30px; max-width: 500px; width: 90%; margin: auto; max-height: 90vh; overflow-y: auto; }
+        .modal-content h2 { color: #667eea; margin-bottom: 20px; }
+        .form-group { margin-bottom: 20px; }
+        .form-group label { display: block; margin-bottom: 5px; font-weight: bold; }
+        .form-group input { width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px; }
+        .form-group input:focus { outline: none; border-color: #667eea; }
+        .time-slots { display: grid; grid-template-columns: repeat(4, 1fr); gap: 10px; margin-bottom: 20px; }
+        .time-slot { padding: 10px; text-align: center; border: 2px solid #e0e0e0; border-radius: 8px; cursor: pointer; }
+        .time-slot.selected { background: #667eea; color: white; border-color: #667eea; }
+        .modal-footer { display: flex; justify-content: space-between; align-items: center; margin-top: 20px; border-top: 1px solid #e0e0e0; padding-top: 20px; }
+        .total-price { font-size: 1.5em; font-weight: bold; color: #667eea; }
+        .modal-footer button { padding: 12px 30px; border: none; border-radius: 25px; cursor: pointer; }
+        .btn-confirm { background: #667eea; color: white; }
+        .btn-cancel { background: #ff6b6b; color: white; }
+        .varoq-card { background: #f5f5f5; padding: 15px; border-radius: 10px; margin-bottom: 10px; }
+        .varoq-title { font-weight: bold; color: #333; margin-bottom: 5px; }
+        .varoq-desc { color: #666; font-size: 0.9em; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <header><h1>🎓 Online Kurslar</h1><p>Bilimingizni kengaytiring!</p></header>
+        <div class="user-panel">
+            <div><span id="userGreeting">Hush kelibsiz!</span><span id="userBalance" class="balance-display" style="display: none;">Balans: 0 so'm</span></div>
+            <div class="auth-buttons">
+                <button id="loginBtn" class="btn-login" onclick="showLogin()">🔐 Login</button>
+                <button id="logoutBtn" class="btn-logout" onclick="logout()" style="display: none;">Logout</button>
+                <button id="addMoneyBtn" class="btn-add-money" onclick="showAddMoney()" style="display: none;">💰 Pul qo'shish</button>
+                <button id="teacherBtn" class="btn-teacher-action" onclick="showTeacherPanel()">👨‍🏫 Ustoz Panel</button>
+            </div>
+        </div>
+        <div class="courses" id="coursesList"></div>
+    </div>
+
+    <div id="loginModal" class="modal">
+        <div class="modal-content">
+            <h2>🔐 Login</h2>
+            <div class="form-group"><label>Email</label><input type="email" id="loginEmail" placeholder="email@domen.com"></div>
+            <div class="form-group"><label>Parol</label><input type="password" id="loginPassword" placeholder="Parolni kiriting"></div>
+            <div class="form-group"><label>Kim siz?</label><select id="loginType" style="width: 100%; padding: 12px; border: 2px solid #e0e0e0; border-radius: 10px;"><option value="user">O'quvchi</option><option value="teacher">Ustoz</option></select></div>
+            <div class="modal-footer"><button class="btn-cancel" onclick="closeLogin()">Bekor qilish</button><button class="btn-confirm" onclick="login()">Kirish</button></div>
+        </div>
+    </div>
+
+    <div id="addMoneyModal" class="modal">
+        <div class="modal-content">
+            <h2>💰 Pul qo'shish</h2>
+            <div class="form-group"><label>Summa (so'm)</label><input type="number" id="addMoneyAmount" placeholder="500000"></div>
+            <div class="form-group"><label>Parol (oylik)</label><input type="password" id="addMoneyPassword"></div>
+            <div class="modal-footer"><button class="btn-cancel" onclick="closeAddMoney()">Bekor qilish</button><button class="btn-confirm" onclick="addMoney()">Qo'shish</button></div>
+        </div>
+    </div>
+
+    <div id="bookingModal" class="modal">
+        <div class="modal-content">
+            <h2>📝 Kurs band qilish</h2>
+            <input type="hidden" id="selectedCourse"><input type="hidden" id="selectedPrice">
+            <div class="form-group"><label>To'liq ism</label><input type="text" id="fullName" placeholder="Abdullov Abdullox"></div>
+            <div class="form-group"><label>Telefon</label><input type="tel" id="phone" placeholder="+998 90 123 45 67"></div>
+            <div class="form-group"><label>Davomiyligi (oy)</label><select id="bookingMonths" onchange="updatePrice()"><option value="1">1 oy</option><option value="2">2 oy</option><option value="3">3 oy</option></select></div>
+            <div class="form-group"><label>Vaqt tanlang</label><div class="time-slots" id="timeSlots"><div class="time-slot" onclick="selectTime('Dushanba 10:00')">Dush 10:00</div><div class="time-slot" onclick="selectTime('Chorshanba 14:00')">Cor 14:00</div></div></div>
+            <div class="modal-footer"><div><div>Jami to'lov</div><div class="total-price" id="displayFinalPrice">0 so'm</div></div><button class="btn-cancel" onclick="closeBooking()">Bekor qilish</button><button class="btn-confirm" onclick="submitBooking()">Tasdiqlash</button></div>
+        </div>
+    </div>
+
+    <div id="teacherModal" class="modal">
+        <div class="modal-content" style="max-width: 700px;">
+            <h2 id="teacherModalTitle">👨‍🏫 Ustoz Panel</h2>
+            <div class="form-group"><label>Ustoz balansi</label><div class="total-price" id="teacherBalance" style="font-size: 2em;">0 so'm</div></div>
+            <div id="teacherContent" style="max-height: 500px; overflow-y: auto;">
+                <div class="form-group"><label>Band qilingan o'quvchilar:</label>
+                    <ul id="studentsList" style="padding-left: 20px; margin: 10px 0;"></ul>
+                </div>
+                <div class="form-group">
+                    <button class="btn-confirm" onclick="startLesson('IELTS Kursi')">IELTS Kursi - Darsni boshla</button>
+                    <button class="btn-confirm" onclick="startLesson('TOEFL Kursi')">TOEFL Kursi - Darsni boshla</button>
+                    <button class="btn-confirm" onclick="startLesson('Matematika 9-sinf')">Matematika 9-sinf - Darsni boshla</button>
+                    <button class="btn-confirm" onclick="startLesson('Biologiya 9-sinf')">Biologiya 9-sinf - Darsni boshla</button>
+                    <button class="btn-confirm" onclick="startLesson('JavaScript Kursi')">JavaScript Kursi - Darsni boshla</button>
+                </div>
+                <div id="varoqContainer" style="display: none;">
+                    <h3 id="lessonSubject" style="color: #667eea; margin: 20px 0;"></h3>
+                    <div id="varoqsList"></div>
+                    <button class="btn-cancel" onclick="closeVaroqs()" style="margin-top: 20px;">❌ Yopish</button>
+                </div>
+            </div>
+            <div class="modal-footer"><button class="btn-cancel" onclick="closeTeacher()">Yopish</button></div>
+        </div>
+    </div>
+
+    <div id="successModal" class="modal"><div class="modal-content" style="text-align: center;"><h2 style="color: #4caf50;">✅ Muvaffaqiyatli!</h2><p>Kurs band qilindi.</p><button class="btn-confirm" onclick="closeSuccess()">Yopish</button></div></div>
+
+    <script>
+        let currentUser = null;
+        let selectedTime = null;
+        let teacherBalance = 0;
+        let activeBookings = [];
+
+        const courses = {
+            'IELTS Kursi': 280000, 'TOEFL Kursi': 300000, 'Duolingo Kursi': 200000,
+            'Matematika 9-sinf': 180000, 'Matematika 10-sinf': 190000, 'Statistika': 220000, 'EGE Matematika': 250000,
+            'Biologiya 9-sinf': 170000, 'Biologiya 10-sinf': 180000, 'Biologiya Olimpiadasi': 300000,
+            'Kimyo': 190000, 'Geografiya': 160000, 'Tarix': 150000, 'Adabiyot': 140000, 'Fizika': 180000, 'Informatika': 160000, 'Rissо': 120000,
+            'JavaScript Kursi': 250000, 'Python Kursi': 220000, 'Java Kursi': 240000, 'C# Kursi': 230000, 'PHP Kursi': 200000,
+            'HTML & CSS Kursi': 150000, 'React Kursi': 300000, 'Vue.js Kursi': 280000, 'Node.js Kursi': 270000, 'Kotlin Kursi': 260000,
+            'IT Lux': 10000000000000000
+        };
+
+        const varoqTopics = {
+            'IELTS Kursi': ['Listening: Daily Conversation', 'Listening: Academic Lecture', 'Reading: Passage 1', 'Reading: Passage 2', 'Reading: Passage 3', 'Writing: Task 1 (Chart)', 'Writing: Task 2 (Essay)', 'Speaking: Part 1 (Introduction)', 'Speaking: Part 2 (Long Turn)', 'Speaking: Part 3 (Discussion)'],
+            'TOEFL Kursi': ['TOEFL Reading: Academic Texts', 'TOEFL Listening: Campus Conversations', 'TOEFL Speaking: Task 1 (Independent)', 'TOEFL Speaking: Task 2 (Integrated)', 'TOEFL Writing: Task 1 (Essay)', 'TOEFL Writing: Task 2 (Integrated)', 'Vocabulary: Academic Words', 'Grammar: Advanced Tenses', 'Pronunciation: American English', 'Test Strategies: Time Management'],
+            'Matematika 9-sinf': ['Algebra: Quadratic Equations', 'Algebra: Systems of Equations', 'Geometry: Triangles', 'Geometry: Circles', 'Functions: Quadratic Function', 'Progressions: Arithmetic & Geometric', 'Probability & Statistics', 'Trigonometry: Basics', 'Absolute Value & Radicals', 'Review & Practice Test'],
+            'Biologiya 9-sinf': ['Cell Biology: Structure', 'Cell Biology: Functions', 'Genetics: Mendel Laws', 'Genetics: DNA & RNA', 'Evolution: Natural Selection', 'Human Anatomy: Organ Systems', 'Ecology: Ecosystems', 'Microbiology: Bacteria & Viruses', 'Botany: Plant Classification', 'Zoology: Animal Kingdom'],
+            'JavaScript Kursi': ['Variables & Data Types', 'Functions & Arrow Functions', 'Arrays & Objects', 'DOM Manipulation', 'Event Listeners', 'Async/Await & Promises', 'ES6+ Features', 'JSON & API Calling', 'Project: To-Do List', 'Project: Calculator'],
+            'Python Kursi': ['Variables & Basic Syntax', 'Lists & Tuples', 'Dictionaries & Sets', 'Loops: For & While', 'Functions & Modules', 'File Handling', 'Error Handling', 'Object-Oriented Programming', 'Working with APIs', 'Project: Data Analyzer'],
+            'Java Kursi': ['Syntax & Data Types', 'Control Flow: If/Else', 'Loops & Arrays', 'Classes & Objects', 'Inheritance & Polymorphism', 'Interfaces & Abstract Classes', 'Collections Framework', 'Exception Handling', 'File I/O', 'Project: Student Management'],
+            'HTML & CSS Kursi': ['HTML: Structure & Tags', 'HTML: Forms & Tables', 'CSS: Selectors & Box Model', 'CSS: Flexbox', 'CSS: Grid Layout', 'CSS: Responsive Design', 'CSS: Animations', 'CSS: Media Queries', 'Project: Landing Page', 'Project: Portfolio Site']
+        };
+
+        function formatPrice(price) { return price.toString().replace(/\B(?=(\d{3})+(?!\d))/g, ',') + ' so\'m'; }
+
+        function renderCourses() {
+            const container = document.getElementById('coursesList');
+            container.innerHTML = '';
+            Object.entries(courses).forEach(([name, price]) => {
+                const card = document.createElement('div');
+                card.className = 'course-card';
+                card.innerHTML = '<div class="course-header"><h3>' + name + '</h3><div class="course-price">' + formatPrice(price) + '</div></div><div class="course-body"><p>' + name + ' darslari.</p><div class="course-info"><div class="info-item"><div class="label">Davomiyligi</div><div class="value">1-3 oy</div></div><div class="info-item"><div class="label">Darslar</div><div class="value">10-20 ta</div></div><div class="info-item"><div class="label">Sotilgan</div><div class="value">' + Math.floor(Math.random() * 100 + 10) + '</div></div></div><button class="btn-book" onclick="openBooking(\'' + name + '\', ' + price + ')">Band qilish</button></div>';
+                container.appendChild(card);
+            });
+        }
+
+        function showLogin() { document.getElementById('loginModal').classList.add('active'); }
+        function closeLogin() { document.getElementById('loginModal').classList.remove('active'); }
+        function showAddMoney() { document.getElementById('addMoneyModal').classList.add('active'); }
+        function closeAddMoney() { document.getElementById('addMoneyModal').classList.remove('active'); }
+        function showTeacherPanel() { document.getElementById('teacherModal').classList.add('active'); document.getElementById('teacherBalance').textContent = formatPrice(teacherBalance); renderStudentsList(); }
+        function closeTeacher() { document.getElementById('teacherModal').classList.remove('active'); }
+        function closeVaroqs() { document.getElementById('varoqContainer').style.display = 'none'; }
+
+        function login() {
+            const email = document.getElementById('loginEmail').value;
+            const password = document.getElementById('loginPassword').value;
+            const type = document.getElementById('loginType').value;
+            if (!email || !password) { alert('Iltimos, barcha maydonlarni to\'ldiring!'); return; }
+            currentUser = { email: email, name: email.split('@')[0], type: type, balance: 500000 };
+            document.getElementById('userGreeting').textContent = 'Salom, ' + currentUser.name + '!';
+            document.getElementById('userBalance').style.display = 'inline';
+            document.getElementById('userBalance').textContent = 'Balans: ' + formatPrice(currentUser.balance);
+            document.getElementById('loginBtn').style.display = 'none';
+            document.getElementById('logoutBtn').style.display = 'inline-block';
+            document.getElementById('addMoneyBtn').style.display = 'inline-block';
+            document.getElementById('loginEmail').value = '';
+            document.getElementById('loginPassword').value = '';
+            if (type === 'teacher') document.getElementById('teacherBtn').style.display = 'inline-block';
+            closeLogin();
+            alert('✅ Tizimga kirdingiz!');
+        }
+
+        function logout() {
+            currentUser = null;
+            document.getElementById('userGreeting').textContent = 'Hush kelibsiz!';
+            document.getElementById('userBalance').style.display = 'none';
+            document.getElementById('loginBtn').style.display = 'inline-block';
+            document.getElementById('logoutBtn').style.display = 'none';
+            document.getElementById('addMoneyBtn').style.display = 'none';
+            document.getElementById('teacherBtn').style.display = 'none';
+        }
+
+        function addMoney() {
+            const password = document.getElementById('addMoneyPassword').value.trim();
+            const amount = parseInt(document.getElementById('addMoneyAmount').value.trim());
+            if (password !== 'oylik') { alert('❌ Noto\'g\'ri parol! Parol: oylik'); return; }
+            if (!amount || amount <= 0) { alert('❌ Iltimos, to\'g\'ri summani kiriting!'); return; }
+            currentUser.balance += amount;
+            document.getElementById('userBalance').textContent = 'Balans: ' + formatPrice(currentUser.balance);
+            alert('✅ Pul qo\'shildi!\n\nQo\'shilgan: ' + formatPrice(amount) + '\nJami: ' + formatPrice(currentUser.balance));
+            document.getElementById('addMoneyPassword').value = ''; document.getElementById('addMoneyAmount').value = ''; closeAddMoney();
+        }
+
+        function openBooking(course, price) {
+            if (!currentUser) { alert('⚠️ Avval login bo\'ling!'); showLogin(); return; }
+            if (currentUser.type === 'teacher') { alert('❌ Ustoz siz kurs band qila olmaysiz!'); return; }
+            document.getElementById('selectedCourse').value = course;
+            document.getElementById('selectedPrice').value = price;
+            document.getElementById('fullName').value = ''; document.getElementById('phone').value = '';
+            selectedTime = null; document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected'));
+            updatePrice(); document.getElementById('bookingModal').classList.add('active');
+        }
+
+        function closeBooking() { document.getElementById('bookingModal').classList.remove('active'); }
+        function selectTime(time) { selectedTime = time; document.querySelectorAll('.time-slot').forEach(s => s.classList.remove('selected')); event.currentTarget.classList.add('selected'); }
+        function updatePrice() { const basePrice = parseInt(document.getElementById('selectedPrice').value); const months = parseInt(document.getElementById('bookingMonths').value); document.getElementById('displayFinalPrice').textContent = formatPrice(basePrice * months); }
+
+        function submitBooking() {
+            if (!currentUser) { alert('⚠️ Avval login bo\'ling!'); showLogin(); return; }
+            if (currentUser.type === 'teacher') { alert('❌ Ustoz siz kurs band qila olmaysiz!'); return; }
+            const course = document.getElementById('selectedCourse').value;
+            const fullName = document.getElementById('fullName').value.trim();
+            const phone = document.getElementById('phone').value.trim();
+            const basePrice = parseInt(document.getElementById('selectedPrice').value);
+            const months = parseInt(document.getElementById('bookingMonths').value);
+            const finalPrice = basePrice * months;
+            const time = selectedTime;
+            if (!fullName) { alert('Ismingizni kiriting!'); return; }
+            if (!time) { alert('Dars vaqtini tanlang!'); return; }
+            if (currentUser.balance < finalPrice) { alert('❌ Yetarli pul yo\'q! Sizning balansingiz: ' + formatPrice(currentUser.balance)); return; }
+            currentUser.balance -= finalPrice;
+            teacherBalance += finalPrice;
+            document.getElementById('userBalance').textContent = 'Balans: ' + formatPrice(currentUser.balance);
+            document.getElementById('teacherBalance').textContent = formatPrice(teacherBalance);
+            activeBookings.push({ course, fullName, phone, months, time });
+            alert('✅ Kurs band qilindi!\n\nKurs: ' + course + '\nO\'quvchi: ' + fullName + '\nTelefon: ' + phone + '\nDavomiyligi: ' + months + ' oy\nVaqti: ' + time + '\nTo\'lov: ' + formatPrice(finalPrice) + '\nQolgan balans: ' + formatPrice(currentUser.balance));
+            closeBooking();
+        }
+
+        function renderStudentsList() {
+            const list = document.getElementById('studentsList');
+            list.innerHTML = '';
+            if (activeBookings.length === 0) { list.innerHTML = '<li>Hech qanday o\'quvchi band qilingan emas</li>'; }
+            else { activeBookings.forEach(b => list.innerHTML += '<li><strong>' + b.course + '</strong>: ' + b.fullName + ' (' + b.months + ' oy)</li>'); }
+        }
+
+        function startLesson(subject) {
+            const varoqs = varoqTopics[subject];
+            if (!varoqs) { alert('Bu kurs uchun mavzu topilmadi!'); return; }
+            document.getElementById('lessonSubject').textContent = subject + ' - 10 ta Varoq';
+            const container = document.getElementById('varoqsList');
+            container.innerHTML = '';
+            varoqs.forEach((topic, index) => { container.innerHTML += '<div class="varoq-card"><div class="varoq-title">' + (index + 1) + '. ' + topic + '</div><div class="varoq-desc">Bu varoqda ' + topic + ' mavzusi batafsil tushuntiriladi.</div></div>'; });
+            document.getElementById('varoqContainer').style.display = 'block';
+        }
+
+        function closeSuccess() { document.getElementById('successModal').classList.remove('active'); }
+        window.onclick = function(event) { if (event.target.className === 'modal') { event.target.classList.remove('active'); } }
+
+        renderCourses();
+    </script>
+</body>
+</html>
